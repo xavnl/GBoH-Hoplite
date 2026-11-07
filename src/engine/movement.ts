@@ -68,7 +68,11 @@ export function legalMoves(s: GameState, g: BoardGeometry, u: Unit): Map<string,
       }
       if (ooc && enemyAdj.has(k) && !u.advance) return null; // 5.45
     }
-    const stop = footprint(st.anchor, st.facing, u.size).hexes.some((h) => enemyFront.has(hexKey(h)));
+    const fpHexes = footprint(st.anchor, st.facing, u.size).hexes;
+    const stop = fpHexes.some((h) => enemyFront.has(hexKey(h)));
+    // Stacking (6.81) is judged on the whole final position, not just the hexes just entered
+    // (a unit that moved into a friend's hex and then turned there cannot stop).
+    endable = endable && fpHexes.every((h) => { const o = occ.get(hexKey(h)); return !o || o.id === u.id; });
     return { mp, hits, stop, endable };
   };
 

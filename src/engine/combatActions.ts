@@ -260,7 +260,10 @@ export function combatReducer(s: GameState, a: CombatAction): GameState {
       const u = s.units[re.reactorId], mover = s.units[re.moverId];
       if (!u || !u.hex) return s;
       let st: GameState;
-      if (re.kind === 'reverseFace') st = setUnit(s, { ...u, ...reverseFace(u.hex, u.facing), advance: null });
+      if (re.kind === 'reverseFace') {
+        const rf = reverseFace(u.hex, u.facing);
+        st = setUnit(s, { ...u, hex: rf.anchor, facing: rf.facing, advance: null });
+      }
       else st = setUnit(s, { ...u, facing: normFacing(u.facing + a.delta), advance: null });
       st = log(st, `${u.name} ${re.kind === 'reverseFace' ? 'reverse-faces (6.95)' : 'changes facing one vertex (6.94)'} as ${mover.name} closes in.`, 'info');
       const cavVsInf = (u.type === 'LC' || u.type === 'HC') && !(mover.type === 'LC' || mover.type === 'HC' || mover.type === 'CH');

@@ -50,7 +50,16 @@ npm run dev      # http://localhost:5173
      Cavalry Command Withdrawal (6.68), reactions to moves made by free placement, H&D fire (7.2),
      multi-leader orders split (5.52), PW movement ban when activated, LOS blocking by units,
      leader movement allowance (9 MP) and OC-only movement on Momentum, terrain.
-3. **AI opponent** — heuristics first, then search on top of the same engine.
+3. **AI opponent** *(first version)* — pick the AI side in the top bar ("AI: …").
+   - `src/ai/ai.ts`: heuristic player. Initiative pick, Trump (only when the odds are ≥ 30% against the
+     enemy main line), Momentum (weighs extra shocks against the 6.13 "moved again" hit), orders
+     (Rally when nothing is in contact), Advance rolls, missile fire by expected hits, movement scored on
+     closing distance, shock value (CRT expectation), flank exposure and flank support, then Shock
+     combats with must/optional attacks; reactions (withdraw light troops, reaction facing, fire).
+   - `src/ai/useAi.ts`: plays the AI's actions one by one through the normal reducer; the player keeps
+     the neutral steps (roll Initiative, draw markers, end of turn) and answers reactions.
+   - `src/ai/simulate.ts` + `ai.test.ts`: full AI-vs-AI battles checked for rule invariants
+     (no stacking, no unit left at/over its TQ without routing). Next: search-based AI, difficulty levels.
 4. More battles — terrain must be encoded per map (it only exists in the map art).
 
 ## Layout

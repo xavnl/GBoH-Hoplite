@@ -17,14 +17,15 @@ interface Props {
   dispatch: (a: Action) => void;
   selection: Selection;
   onSelect: (s: Selection) => void;
+  aiSide?: SideId | null;
 }
 
-export function Sidebar({ state, board, dispatch, selection, onSelect }: Props) {
+export function Sidebar({ state, board, dispatch, selection, onSelect, aiSide }: Props) {
   const unit = selection?.kind === 'unit' ? state.units[selection.id] : undefined;
   const leader = selection?.kind === 'leader' ? state.leaders[selection.id] : undefined;
   return (
     <aside className="sidebar">
-      <TurnPanel state={state} dispatch={dispatch} />
+      <TurnPanel state={state} dispatch={dispatch} aiSide={aiSide ?? null} />
       {state.phase === 'initiative' && <section className="panel"><PwOrders state={state} board={board} dispatch={dispatch} /></section>}
       <ReactionsPanel state={state} board={board} dispatch={dispatch} />
       <RoutPanel state={state} />
@@ -39,7 +40,7 @@ export function Sidebar({ state, board, dispatch, selection, onSelect }: Props) 
   );
 }
 
-function TurnPanel({ state, dispatch }: { state: GameState; dispatch: (a: Action) => void }) {
+function TurnPanel({ state, dispatch, aiSide }: { state: GameState; dispatch: (a: Action) => void; aiSide: SideId | null }) {
   const s = state;
   const phaseName: Record<GameState['phase'], string> = {
     initiative: 'A · Initiative', activation: 'B · Activation', orders: 'C · Orders',
@@ -80,7 +81,7 @@ function TurnPanel({ state, dispatch }: { state: GameState; dispatch: (a: Action
               <div className="btn-row">
                 <button className="primary" onClick={() => dispatch({ type: 'endActivation' })}>End Orders Phase</button>
                 {(s.initiativePick && sameMarker(s.initiativePick, s.active)) || (s.active.kind === 'command' && s.active.via) ? null : (
-                  (['A', 'B'] as SideId[]).filter((sd) => sd !== s.active!.side && !s.trumpUsed[sd]).map((sd) => {
+                  (['A', 'B'] as SideId[]).filter((sd) => sd !== s.active!.side && !s.trumpUsed[sd] && sd !== aiSide).map((sd) => {
                     const why = canTrump(s, sd);
                     return <button key={sd} disabled={!!why} title={why ?? 'Roll ≤ OC Initiative to cancel this marker (5.32)'}
                       onClick={() => dispatch({ type: 'trump', side: sd })}>Trump ({s.sides[sd].name})</button>;

@@ -93,10 +93,18 @@ export function reducer(s: GameState, a: Action): GameState {
       return updUnit(s, a.id, (u) => ({ facing: normFacing(u.facing + a.delta) }));
 
     case 'pivot':
-      return updUnit(s, a.id, (u) => (u.hex ? (a.keep === 'left' ? pivotKeepLeft : pivotKeepRight)(u.hex, u.facing) : {}));
+      return updUnit(s, a.id, (u) => {
+        if (!u.hex) return {};
+        const p = (a.keep === 'left' ? pivotKeepLeft : pivotKeepRight)(u.hex, u.facing);
+        return { hex: p.anchor, facing: p.facing };
+      });
 
     case 'reverseFace':
-      return updUnit(s, a.id, (u) => (u.hex ? reverseFace(u.hex, u.facing) : {}));
+      return updUnit(s, a.id, (u) => {
+        if (!u.hex) return {};
+        const r = reverseFace(u.hex, u.facing);
+        return { hex: r.anchor, facing: r.facing };
+      });
 
     case 'setHits': {
       const u = s.units[a.id];
@@ -336,7 +344,9 @@ export function reducer(s: GameState, a: Action): GameState {
       if (secondMove) st = combatReducer(st, { type: 'applyHits', hits: { [u.id]: 1 }, reason: 'moved again this turn (6.13)' });
       const after = st.units[u.id];
       if (!after.eliminated && !after.routed && after.hits >= after.tq) st = routUnit(st, u.id, 'movement hits reached TQ (10.14)');
-      if (u.advance === 'run') st = log(st, `${u.name} advanced at the Run: make the after-move TQ check (6.24).`, 'system');
+      if (u.advance === 'run' && !st.units[u.id].eliminated && !st.units[u.id].routed) {
+        st = combatReducer(st, { type: 'tqCheckHits', id: u.id, label: 'Run move check (6.24)', exactHits: 1 });
+      }
       st = displaceLeaders(st, u.id);
       // Reactions of the inactive side to this move (6.6, 6.7, 6.94/6.95, 7.3).
       const fresh = a.trail && !st.units[u.id].eliminated ? detectMoveReactions(st, BOARDS[st.boardId].geometry, u.id, a.trail) : [];

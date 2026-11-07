@@ -590,6 +590,20 @@ describe('Momentum, Trump & leaders (5.24, 5.32, 4.23-4.25)', () => {
   });
 });
 
+describe('Phalanx manoeuvre actions', () => {
+  it('pivot right and reverse face move the counter to the right hexes', () => {
+    const base = createGame(NEMEA, nemeaSetup as VassalSetup, BOARDS.blankFull, 1);
+    const ph = unit({ id: 'ph', type: 'HO', size: 2, tq: 6, hex: '2215', facing: 0 });
+    const at = (s: GameState) => footprint(s.units.ph.hex!, s.units.ph.facing, 2).hexes.map(lab).sort();
+    let s: GameState = { ...base, units: { ph } };
+    s = reducer(s, { type: 'pivot', id: 'ph', keep: 'right' });
+    expect(at(s)).toEqual(['2216', '2315']);
+    s = reducer(s, { type: 'reverseFace', id: 'ph' });
+    expect(at(s)).toEqual(['2216', '2315']);
+    expect(s.units.ph.facing).toBe(8);
+  });
+});
+
 describe('Command range (5.42)', () => {
   it('counts the unit hex but not the leader hex, and is blocked by enemy units', () => {
     const s = createGame(NEMEA, nemeaSetup as VassalSetup, BOARDS.blankFull, 1);

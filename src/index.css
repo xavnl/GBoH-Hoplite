@@ -40,6 +40,11 @@ label { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
 .topbar h1 { font-size: 18px; margin: 0; letter-spacing: 2px; color: var(--accent); font-variant: small-caps; }
 .topbar .scenario { color: var(--muted); }
 .spacer { flex: 1; }
+.ai-busy { color: var(--accent); font-weight: bold; animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: 0.45; } }
+/* While the AI plays, the player watches: no clicks on the map or the panels (except reactions). */
+.main.ai-running .map { pointer-events: none; }
+.main.ai-running .sidebar > .panel:not(.reactions) button { pointer-events: none; opacity: 0.6; }
 
 .main { flex: 1; display: flex; min-height: 0; }
 .map-wrap { flex: 1; display: flex; flex-direction: column; min-width: 0; }

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { BOARDS } from './data/boards';
 import { newGame, SCENARIOS, useGame } from './game/useGame';
+import { useAiDriver } from './ai/useAi';
+import type { SideId } from './engine/types';
 import { MapView, type Selection } from './ui/MapView';
 import { Sidebar } from './ui/Sidebar';
 
@@ -11,6 +13,11 @@ export default function App() {
   const [showGrid, setShowGrid] = useState(false);
   const [showMoves, setShowMoves] = useState(true);
   const [hover, setHover] = useState<string | null>(null);
+  const [aiSide, setAiSide] = useState<SideId | null>(() => {
+    try { return (localStorage.getItem('hoplite.aiSide') as SideId | null) || null; } catch { return null; }
+  });
+  const [aiSpeed, setAiSpeed] = useState(450);
+  const aiBusy = useAiDriver(state, dispatch, aiSide, aiSpeed);
   const board = BOARDS[state.boardId];
   const scenario = SCENARIOS[state.scenarioId].def;
 
@@ -44,6 +51,24 @@ export default function App() {
         <h1>Hoplite</h1>
         <span className="scenario">{scenario.name}</span>
         <div className="spacer" />
+        <label title="The computer plays this side">
+          AI:
+          <select value={aiSide ?? ''} onChange={(e) => {
+            const v = (e.target.value || null) as SideId | null;
+            setAiSide(v);
+            try { if (v) localStorage.setItem('hoplite.aiSide', v); else localStorage.removeItem('hoplite.aiSide'); } catch { /* optional */ }
+          }}>
+            <option value="">off</option>
+            <option value="A">{state.sides.A.name}</option>
+            <option value="B">{state.sides.B.name}</option>
+          </select>
+        </label>
+        {aiSide && (
+          <select value={aiSpeed} onChange={(e) => setAiSpeed(Number(e.target.value))} title="AI speed">
+            <option value={900}>slow</option><option value={450}>normal</option><option value={120}>fast</option>
+          </select>
+        )}
+        {aiBusy && <span className="ai-busy">AI is playing…</span>}
         <label><input type="checkbox" checked={showArcs} onChange={(e) => setShowArcs(e.target.checked)} />Facing arcs</label>
         <label title="Highlight legal destinations; dropping on one applies its cohesion costs and the Moved marker">
           <input type="checkbox" checked={showMoves} onChange={(e) => setShowMoves(e.target.checked)} />Legal moves</label>
@@ -52,7 +77,7 @@ export default function App() {
         <button disabled={!canRedo} onClick={redo} title="Ctrl+Y">↷ Redo</button>
         <button onClick={() => { if (confirm('Start a new game of Nemea? The current game will be lost.')) { reset(newGame('nemea')); setSelection(null); } }}>New game</button>
       </header>
-      <main className="main">
+      <main className={`main${aiBusy ? ' ai-running' : ''}`}>
         <div className="map-wrap">
           <MapView state={state} board={board} dispatch={dispatch} selection={selection} onSelect={setSelection}
             showArcs={showArcs} showGrid={showGrid} showMoves={showMoves} onHover={setHover} />
@@ -61,7 +86,7 @@ export default function App() {
             <span className="muted"> · Q/E rotate or pivot · Shift+R reverse · +/− hits · M moved · G engaged · T TQ check · Esc deselect</span>
           </div>
         </div>
-        <Sidebar state={state} board={board} dispatch={dispatch} selection={selection} onSelect={setSelection} />
+        <Sidebar state={state} board={board} dispatch={dispatch} selection={selection} onSelect={setSelection} aiSide={aiSide} />
       </main>
     </div>
   );
