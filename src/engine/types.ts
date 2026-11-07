@@ -62,6 +62,10 @@ export interface Leader {
   killed: boolean;
   /** Whether this leader's death counts for Rout Points (scenario specific). */
   countsForRP: boolean;
+  /** Replacement leader printed on the back of the counter (4.25). */
+  replacement?: { name: string; image: string; range: number; initiative: number };
+  /** Killed, with a replacement to be placed in the next Rout/Remove/Replace/Reload Phase. */
+  awaitingReplacement?: boolean;
 }
 
 export interface Command {
@@ -72,7 +76,7 @@ export interface Command {
 }
 
 export type ActivationMarker =
-  | { kind: 'command'; side: SideId; command: string }
+  | { kind: 'command'; side: SideId; command: string; via?: 'momentum' | 'trump' }
   | { kind: 'momentum'; side: SideId };
 
 export interface SideInfo {
@@ -138,9 +142,13 @@ export interface GameState {
   reactions?: Reaction[];
   /** Pre-arranged Withdrawal orders by Formation Commander id, for this turn (6.72). */
   pwOrders?: Record<string, boolean>;
+  /** A side must choose which Command to activate after a Momentum marker or a successful Trump. */
+  pendingChoice?: { kind: 'momentum' | 'trump'; side: SideId } | null;
+  /** A failed Trump lets the opponent put its Momentum marker back in the pool once used (5.32). */
+  momentumReturn?: Partial<Record<SideId, boolean>>;
   /** Orders of the active Command for this Orders Phase (5.4). */
   orders?: OrderType;
   /** What each unit did in the current Orders Phase (for Recovery 10.41 and the Law of Inertia 6.28). */
-  activity?: Record<string, 'moved' | 'fired' | 'recovered' | 'disengaged' | 'rallied'>;
+  activity?: Record<string, 'moved' | 'fired' | 'recovered' | 'disengaged' | 'rallied' | 'inactive'>;
   winner: SideId | 'draw' | null;
 }

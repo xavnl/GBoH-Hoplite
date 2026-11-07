@@ -34,7 +34,7 @@ export function legalMoves(s: GameState, g: BoardGeometry, u: Unit): Map<string,
   // Orders (5.44): under Disengage non-engaged units do nothing; under Rally they move as if Out of Command.
   if (activeHere && s.orders === 'disengage') return out;
   const act = s.activity?.[u.id];
-  if (act === 'recovered' || act === 'disengaged' || act === 'rallied' || act === 'moved') return out;
+  if (act === 'recovered' || act === 'disengaged' || act === 'rallied' || act === 'moved' || act === 'inactive') return out;
   if (act === 'fired' && u.type === 'LI' && (u.missile === 'B' || u.missile === 'C')) return out; // 7.11: move OR fire
   const ooc = u.outOfCommand || (activeHere && s.orders === 'rally');
   const ma = movementAllowance(u);

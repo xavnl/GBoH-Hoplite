@@ -45,12 +45,20 @@ export interface LeaderStats {
   charisma?: number;
   /** OC Initiative / FC Capability. */
   initiative: number;
+  /** Replacement leader on the back of the counter (4.25); none = KIA side. */
+  replacement?: { name: string; image: string; range: number; initiative: number };
 }
 
 // OC counters read: Command Range, Charisma, Initiative (yellow box). FC: Range, Capability.
 export const LEADERS: Record<string, LeaderStats> = {
   'Aristodemus.png': { rank: 'OC', range: 7, charisma: 3, initiative: 2 },
-  'Derkylidas.png': { rank: 'FC', range: 5, initiative: 1 },
+  'Derkylidas.png': {
+    rank: 'FC', range: 5, initiative: 1,
+    replacement: { name: 'Spartan Hoplite replacement', image: 'Sparta Hoplite replacement leader, 3 0.png', range: 3, initiative: 0 },
+  },
   'Ismenias.png': { rank: 'OC', range: 5, charisma: 1, initiative: 1 },
-  'Timolaus.png': { rank: 'FC', range: 5, initiative: 1 },
+  'Timolaus.png': {
+    rank: 'FC', range: 5, initiative: 1,
+    replacement: { name: 'Theban Hoplite replacement', image: 'Thebes Hoplite replacement leader, 3 0.png', range: 3, initiative: 0 },
+  },
 };

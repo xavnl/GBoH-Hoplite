@@ -70,6 +70,7 @@ export function createGame(scn: ScenarioDef, setup: VassalSetup, board: Board, s
         wounded: false,
         killed: false,
         countsForRP: leaderDef.countsForRP,
+        replacement: stats.replacement,
       };
     }
   }

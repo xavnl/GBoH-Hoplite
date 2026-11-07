@@ -13,6 +13,7 @@ import { unitDistance, unitHexes } from './combat';
 import { advanceAfterCombat, routMove, routPhase } from './rout';
 import { sideRoutPoints } from './routPoints';
 import { rollD10 } from './rng';
+import { eligibleCommands } from './momentum';
 import { createGame } from './setup';
 import { cwsColumn, shockCrt, weaponSuperiority } from './tables';
 import type { GameState, Unit } from './types';
@@ -517,6 +518,75 @@ describe('Disengage, Rally & Recovery (10.3, 10.4)', () => {
     const b = unit({ id: 'b', side: 'B', type: 'LI', tq: 5, hex: '2315' });
     s = reducer(mk(1, { ...a }, b), { type: 'recover', id: 'a' });
     expect(s.units.a.hits).toBe(3);
+  });
+});
+
+describe('Momentum, Trump & leaders (5.24, 5.32, 4.23-4.25)', () => {
+  const fresh = (seed = 1) => createGame(NEMEA, nemeaSetup as VassalSetup, BOARDS.blankFull, seed);
+  const inOrders = (s: GameState, side: 'A' | 'B'): GameState => ({ ...s, phase: 'orders', pool: [], used: [], active: { kind: 'momentum', side }, pendingChoice: { kind: 'momentum', side } });
+
+  it('lists the commands eligible for Momentum with the right ratings', () => {
+    const s = fresh();
+    const a = eligibleCommands(s, g, 'A');
+    expect(a.find((o) => o.commandId === 'A-HO')).toEqual(expect.objectContaining({ leaderId: 'aristodemus', rating: 2 }));
+    expect(a.find((o) => o.commandId === 'A-CS')).toEqual(expect.objectContaining({ leaderId: null, rating: 0 }));
+    const b = eligibleCommands(s, g, 'B');
+    expect(b.find((o) => o.commandId === 'B-HO')?.rating).toBe(1);
+  });
+
+  it('a Momentum attempt activates the command on a success and spends the marker either way', () => {
+    let wins = 0;
+    for (let seed = 1; seed <= 30; seed++) {
+      const s = reducer(inOrders(fresh(seed), 'A'), { type: 'momentumAttempt', commandId: 'A-HO' });
+      expect(s.pendingChoice).toBeNull();
+      expect(s.used.some((m) => m.kind === 'momentum' && m.side === 'A')).toBe(true);
+      if (s.active) { wins++; expect(s.active).toEqual(expect.objectContaining({ kind: 'command', command: 'A-HO', via: 'momentum' })); }
+    }
+    expect(wins).toBeGreaterThan(0);
+  });
+
+  it('a failed Trump returns the opponent\'s Momentum marker; a successful one lets the trumper pick a command', () => {
+    let fails = 0, successes = 0;
+    for (let seed = 1; seed <= 30; seed++) {
+      let s: GameState = { ...fresh(seed), phase: 'orders', pool: [], used: [{ kind: 'momentum', side: 'B' }], active: { kind: 'command', side: 'B', command: 'B-HO' } };
+      s = reducer(s, { type: 'trump', side: 'A' });
+      if (s.pendingChoice?.kind === 'trump') {
+        successes++;
+        s = reducer(s, { type: 'trumpActivate', commandId: 'A-HO' });
+        expect(s.active).toEqual(expect.objectContaining({ command: 'A-HO', via: 'trump' }));
+      } else {
+        fails++;
+        expect(s.pool).toEqual([{ kind: 'momentum', side: 'B' }]);
+      }
+      expect(s.trumpUsed.A).toBe(true);
+    }
+    expect(fails && successes).toBeTruthy();
+  });
+
+  it('a killed Formation Commander is replaced in Phase D by his weaker replacement', () => {
+    let s = fresh();
+    s = reducer(s, { type: 'killLeader', id: 'derkylidas' });
+    expect(eligibleCommands(s, g, 'A').length).toBeGreaterThan(0); // Aristodemus still leads A-HO
+    s = reducer({ ...s, phase: 'rout' }, { type: 'endTurn' });
+    const rep = s.leaders['derkylidas-r'];
+    expect(rep).toEqual(expect.objectContaining({ range: 3, initiative: 0, killed: false }));
+    expect(s.units[Object.keys(s.units).find((id) => s.units[id].hex && rep.hex && unitHexes(s.units[id]).some((h) => h.q === rep.hex!.q && h.r === rep.hex!.r))!].command).toBe('A-HO');
+    // Ismenias (OC) has no replacement: KIA.
+    s = reducer(s, { type: 'killLeader', id: 'ismenias' });
+    s = reducer({ ...s, phase: 'rout' }, { type: 'endTurn' });
+    expect(s.leaders['ismenias-r']).toBeUndefined();
+    expect(eligibleCommands(s, g, 'B')).toEqual([]); // 4.24: no Momentum/Trump without an OC
+  });
+
+  it('a leader alone falls back to the nearest friendly unit when an enemy moves adjacent (4.23)', () => {
+    const s0 = fresh();
+    const lone = { ...s0.leaders['timolaus'], hex: L('2615') };
+    const mover = unit({ id: 'mv', type: 'LI', tq: 5, ma: 5, hex: '2415', facing: 0 });
+    const s1: GameState = { ...s0, leaders: { ...s0.leaders, timolaus: lone }, units: { ...s0.units, mv: mover } };
+    const s = reducer(s1, { type: 'legalMove', id: 'mv', hex: L('2515'), facing: 0, mp: 1, hits: 0, path: ['move'], trail: [[L('2415')], [L('2515')]] });
+    const h = s.leaders['timolaus'].hex!;
+    const occupiedByFriend = Object.values(s.units).some((u) => u.side === 'B' && unitHexes(u).some((x) => x.q === h.q && x.r === h.r));
+    expect(occupiedByFriend).toBe(true);
   });
 });
 

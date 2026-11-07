@@ -46,7 +46,9 @@ for (const [id, file] of Object.entries(SCENARIOS)) {
 
 // Also grab the generic markers we use in the UI.
 for (const m of ['Engaged, v3.jpg', 'Routed, version 6.gif', 'Rallied, version 4.gif',
-  'Out of Command, v10.png', 'Low missile, v6.png', 'No missile, v5.png', 'Moved, vxxx9.png']) {
+  'Out of Command, v10.png', 'Low missile, v6.png', 'No missile, v5.png', 'Moved, vxxx9.png',
+  // Replacement leaders (backs of the Formation Commander counters, 4.25)
+  'Sparta Hoplite replacement leader, 3 0.png', 'Thebes Hoplite replacement leader, 3 0.png']) {
   neededImages.add(m);
 }
 

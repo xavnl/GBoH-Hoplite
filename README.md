@@ -41,10 +41,15 @@ npm run dev      # http://localhost:5173
      LI archers move OR fire, recovered units cannot move.
    - ✅ Advance to Combat rolls per command (6.22), Hellene Law of Inertia (6.28: only toward the enemy,
      non-Spartans spend all MP, warning at end of phase), Drift to the Right on second moves (6.29).
+   - ✅ Momentum (5.24: eligible commands, OC must be used if he leads it, leaderless rating 0 with
+     only units in the OC's range acting), full Trump (5.32: free activation on success, opponent's
+     Momentum back to the pool on failure, 5.33 engaged OC), no Momentum/Trump without an OC (4.24).
+   - ✅ Leaders: replacement leaders placed in Phase D (4.25, from the counter backs), lone leaders
+     fall back to the nearest friendly unit when an enemy moves adjacent (4.23).
    - ⏳ Still manual: facing change after a single-unit advance (8.22), cavalry pursuit (9.4),
      Cavalry Command Withdrawal (6.68), reactions to moves made by free placement, H&D fire (7.2),
      multi-leader orders split (5.52), PW movement ban when activated, LOS blocking by units,
-     Momentum resolution, leader replacement (4.25), terrain.
+     leader movement allowance (9 MP) and OC-only movement on Momentum, terrain.
 3. **AI opponent** — heuristics first, then search on top of the same engine.
 4. More battles — terrain must be encoded per map (it only exists in the map art).
 

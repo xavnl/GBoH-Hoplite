@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import type { Board } from '../data/boards';
 import { footprint, hexLabel } from '../engine/hex';
+import { BOARDS } from '../data/boards';
+import { canTrump, eligibleCommands } from '../engine/momentum';
 import { commandLeaders, disengageRating, rallyRating, recoveryAmount } from '../engine/orders';
 import { allMarkers, effRating, inertiaLaggards, markerLabel, sameMarker, type Action } from '../engine/reducer';
 import { sideRoutPoints, unitRoutPoints } from '../engine/routPoints';
@@ -72,16 +74,23 @@ function TurnPanel({ state, dispatch }: { state: GameState; dispatch: (a: Action
             <div className="active-marker" style={{ borderColor: s.sides[s.active.side].color }}>
               <div className="muted">Active</div>
               <b>{markerLabel(s, s.active)}</b>
-              {s.active.kind === 'momentum' && <p className="small">Momentum (5.24): designate a Command whose leader is in the OC's range, then roll ≤ its Capability (Initiative if OC). You may decline.</p>}
+              {s.active.kind === 'command' && s.active.via && <div className="muted small">activated by {s.active.via === 'momentum' ? 'Momentum' : 'Trump'}</div>}
+              {s.pendingChoice?.kind === 'momentum' && <ChoiceBlock state={s} dispatch={dispatch} />}
               {s.active.kind === 'command' && <OrdersBlock state={s} dispatch={dispatch} commandId={s.active.command} />}
               <div className="btn-row">
                 <button className="primary" onClick={() => dispatch({ type: 'endActivation' })}>End Orders Phase</button>
-                {s.initiativePick && sameMarker(s.initiativePick, s.active) ? null : (
-                  (['A', 'B'] as SideId[]).filter((sd) => sd !== s.active!.side && !s.trumpUsed[sd]).map((sd) => (
-                    <button key={sd} onClick={() => dispatch({ type: 'trump', side: sd })}>Trump ({s.sides[sd].name})</button>
-                  ))
+                {(s.initiativePick && sameMarker(s.initiativePick, s.active)) || (s.active.kind === 'command' && s.active.via) ? null : (
+                  (['A', 'B'] as SideId[]).filter((sd) => sd !== s.active!.side && !s.trumpUsed[sd]).map((sd) => {
+                    const why = canTrump(s, sd);
+                    return <button key={sd} disabled={!!why} title={why ?? 'Roll ≤ OC Initiative to cancel this marker (5.32)'}
+                      onClick={() => dispatch({ type: 'trump', side: sd })}>Trump ({s.sides[sd].name})</button>;
+                  })
                 )}
               </div>
+            </div>
+          ) : s.pendingChoice?.kind === 'trump' ? (
+            <div className="active-marker" style={{ borderColor: s.sides[s.pendingChoice.side].color }}>
+              <ChoiceBlock state={s} dispatch={dispatch} />
             </div>
           ) : (
             <button className="primary" disabled={!s.pool.length} onClick={() => dispatch({ type: 'drawMarker' })}>Draw Activation Marker</button>
@@ -94,7 +103,7 @@ function TurnPanel({ state, dispatch }: { state: GameState; dispatch: (a: Action
           <ol className="small">
             <li>Rout Movement (auto): routed Hoplite Phalanxes are eliminated, other routed units move their full MA (10.23).</li>
             <li>Moved / Rallied / Out of Command markers are cleared (auto).</li>
-            <li>Replace killed Formation Commanders (4.25) — manual.</li>
+            <li>Replacement leaders for killed Formation Commanders are placed on a central unit of their Command (4.25) — auto.</li>
             <li>Reload Missile Low/No units out of enemy missile reach (7.17) — auto.</li>
           </ol>
           <button className="primary" onClick={() => dispatch({ type: 'endTurn' })}>Run phases D & E, next turn</button>
@@ -103,6 +112,33 @@ function TurnPanel({ state, dispatch }: { state: GameState; dispatch: (a: Action
 
       {s.phase === 'over' && <p className="winner">{s.winner === 'draw' ? 'Draw.' : `${s.sides[s.winner as SideId].name} wins!`}</p>}
     </section>
+  );
+}
+
+/** Momentum designation (5.24) or the free activation won by a successful Trump (5.32). */
+function ChoiceBlock({ state, dispatch }: { state: GameState; dispatch: (a: Action) => void }) {
+  const choice = state.pendingChoice!;
+  const opts = eligibleCommands(state, BOARDS[state.boardId].geometry, choice.side);
+  const name = (id: string) => state.commands.find((c) => c.id === id)?.name ?? id;
+  return (
+    <div className="orders">
+      <div className="small">
+        <b style={{ color: state.sides[choice.side].color }}>{state.sides[choice.side].name}</b>{' '}
+        {choice.kind === 'momentum'
+          ? 'Momentum (5.24): designate a Command (leader = OC or in his range) and roll ≤ its rating, or decline. The OC may move either way (5.46).'
+          : 'Trump succeeded: activate one Command (leader = OC or in his range), or none.'}
+      </div>
+      <div className="btn-col">
+        {opts.map((o) => (
+          <button key={o.commandId} title={o.note}
+            onClick={() => dispatch(choice.kind === 'momentum' ? { type: 'momentumAttempt', commandId: o.commandId } : { type: 'trumpActivate', commandId: o.commandId })}>
+            {name(o.commandId)}{choice.kind === 'momentum' ? ` — roll ≤ ${o.rating}` : ''}{o.leaderId ? ` (${state.leaders[o.leaderId].name})` : ' (leaderless)'}
+          </button>
+        ))}
+        {!opts.length && <span className="muted small">No eligible Command.</span>}
+        <button onClick={() => dispatch({ type: 'declineChoice' })}>Decline</button>
+      </div>
+    </div>
   );
 }
 
